@@ -1,0 +1,144 @@
+image:
+  repository: nexus.dataspartan.com:9443/turintech/ray/cluster-base
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: "kuberay"
+fullnameOverride: ""
+
+imagePullSecrets:
+   - name: regcred
+
+head:
+  enableInTreeAutoscaling: true
+  labels: {}
+  rayStartParams:
+    dashboard-host: '0.0.0.0'
+    block: 'true'
+  # containerEnv specifies environment variables for the Ray container,
+  # Follows standard K8s container env schema.
+  containerEnv: []
+  # - name: EXAMPLE_ENV
+  #   value: "1"
+  envFrom: []
+    # - secretRef:
+    #     name: my-env-secret
+  # ports optionally allows specifying ports for the Ray container.
+  # ports: []
+  # resource requests and limits for the Ray head container.
+  resources:
+    limits:
+      cpu: "4"
+      # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
+      memory: "8G"
+    requests:
+      cpu: "4"
+      memory: "8G"
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Ray container security context.
+  securityContext: {}
+  volumes:
+    - name: log-volume
+      emptyDir: {}
+  # Ray writes logs to /tmp/ray/session_latests/logs
+  volumeMounts:
+    - mountPath: /tmp/ray
+      name: log-volume
+  sidecarContainers: []
+
+
+worker:
+  groupName: workergroup
+  replicas: 2
+  labels: {}
+  rayStartParams:
+    block: 'true'
+  initContainerImage: 'busybox:1.28'
+  # Security context for the init container.
+  initContainerSecurityContext: {}
+  # containerEnv specifies environment variables for the Ray container,
+  # Follows standard K8s container env schema.
+  containerEnv: []
+  # - name: EXAMPLE_ENV
+  #   value: "1"
+  envFrom: []
+    # - secretRef:
+    #     name: my-env-secret
+  # ports optionally allows specifying ports for the Ray container.
+  # ports: []
+  # resource requests and limits for the Ray worker container.
+  resources:
+    limits:
+      cpu: "8"
+      memory: "16G"
+    requests:
+      cpu: "8"
+      memory: "16G"
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Ray container security context.
+  securityContext: {}
+  volumes:
+    - name: log-volume
+      emptyDir: {}
+  # Ray writes logs to /tmp/ray/session_latests/logs
+  volumeMounts:
+    - mountPath: /tmp/ray
+      name: log-volume
+  sidecarContainers: []
+
+additionalWorkerGroups:
+  smallGroup:
+    # Disabled by default
+    disabled: true
+    replicas: 1
+    minReplicas: 1
+    maxReplicas: 3
+    labels: {}
+    rayStartParams:
+      block: 'true'
+    initContainerImage: 'busybox:1.28'
+    # Security context for the init container.
+    initContainerSecurityContext: {}
+  # containerEnv specifies environment variables for the Ray container,
+  # Follows standard K8s container env schema.
+    containerEnv: []
+      # - name: EXAMPLE_ENV
+      #   value: "1"
+    envFrom: []
+        # - secretRef:
+        #     name: my-env-secret
+    # ports optionally allows specifying ports for the Ray container.
+    # ports: []
+  # resource requests and limits for the Ray worker container.
+    resources:
+      limits:
+        cpu: 1
+        memory: "1G"
+      requests:
+        cpu: 1
+        memory: "1G"
+    annotations: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    # Ray container security context.
+    securityContext: {}
+    volumes:
+      - name: log-volume
+        emptyDir: {}
+  # Ray writes logs to /tmp/ray/session_latests/logs
+    volumeMounts:
+      - mountPath: /tmp/ray
+        name: log-volume
+    sidecarContainers: []
+
+# Configuration for Head's Kubernetes Service
+service:
+  # This is optional, and the default is ClusterIP.
+  type: ClusterIP
