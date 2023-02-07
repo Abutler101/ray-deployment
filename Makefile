@@ -16,15 +16,16 @@ launch-kubernetes: cluster-down
 
 .PHONY: build-k3s-cuda
 build-k3s-cuda:
-#	k3d registry create registry.localhost --port 11836
+	k3d registry delete registry.ray.localhost
+	k3d registry create registry.ray.localhost --port 11836
 	cd $(ROOT_PATH)/cuda-k3d; ./build.sh
-	docker tag docker.io/rancher/k3s:v1.25.6-k3s1-cuda k3d-registry.localhost:5000/my-local-image:latest
-	docker push k3d-registry.localhost:5000/my-local-image:latest
+	docker tag docker.io/rancher/k3s:v1.25.6-k3s1-cuda k3d-registry.ray.localhost:11836/k3s-v1.25.6-k3s1-cuda:latest
+	docker push k3d-registry.ray.localhost:11836/k3s-v1.25.6-k3s1-cuda:latest
 
 
 .PHONY: launch-kubernetes-cuda
 launch-kubernetes-cuda: cluster-down build-k3s-cuda
-	k3d cluster create ray-cluster --image k3s:v1.25.6-k3s1-cuda --registry-use k3d-registry.localhost:5000
+	k3d cluster create ray-cluster --image k3s-v1.25.6-k3s1-cuda:latest --registry-use k3d-registry.ray.localhost:11836
 	helm repo add kuberay https://ray-project.github.io/kuberay-helm/
 	helm install kuberay-operator kuberay/kuberay-operator --version 0.4.0
 
