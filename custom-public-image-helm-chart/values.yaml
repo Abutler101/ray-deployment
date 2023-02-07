@@ -1,6 +1,6 @@
 image:
   repository: rayproject/ray
-  tag: 2.2.0
+  tag: 2.2.0-py38
   pullPolicy: IfNotPresent
 
 nameOverride: "kuberay"
