@@ -1,5 +1,20 @@
+import math
 import time
 import ray
+
+TEST_TASK = "GPU"  # Possible values: GPU, CPU, DATASETS
+
+
+@ray.remote
+def cpu_test_method(num_samples: int):
+    import random
+    import math
+    num_inside = 0
+    for i in range(num_samples):
+        x, y = random.uniform(-1, 1), random.uniform(-1, 1)
+        if math.hypot(x, y) <= 1:
+            num_inside += 1
+    return num_inside
 
 
 @ray.remote(num_gpus=1)
@@ -26,12 +41,31 @@ def gpu_transformer_method():
     return loss
 
 
+@ray.remote
+def load_dataset():
+    ...
+
+
 def main():
     ray.init(address="ray://0.0.0.0:10001")
     print("connected to ray cluster")
-    a = gpu_transformer_method.remote()
-    b = ray.get(a)
-    print(b)
+
+    if TEST_TASK == "CPU":
+        per_task_samples = 10_000
+        task_count = 4
+        results = [cpu_test_method.remote(per_task_samples) for _ in range(task_count)]
+        total_samples = task_count * per_task_samples
+        total_inside = sum(ray.get(results))
+        pi = (total_inside * 4) / total_samples
+        print(f"Pi estimate = {pi}\t Pi true = {math.pi}")
+
+    elif TEST_TASK == "GPU":
+        a = gpu_transformer_method.remote()
+        b = ray.get(a)
+        print(b)
+
+    elif TEST_TASK == "DATASETS":
+        ...
 
 
 if __name__ == '__main__':
