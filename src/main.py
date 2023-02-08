@@ -1,8 +1,10 @@
 import math
 import time
 import ray
+from pyspark.pandas import DataFrame
+from pyspark.sql import SparkSession
 
-TEST_TASK = "GPU"  # Possible values: GPU, CPU, DATASETS
+TEST_TASK = "DATASETS"  # Possible values: GPU, CPU, DATASETS
 
 
 @ray.remote
@@ -41,9 +43,15 @@ def gpu_transformer_method():
     return loss
 
 
-@ray.remote
-def load_dataset():
-    ...
+def load_dataset(spark: SparkSession) -> DataFrame:
+    from pyspark.sql.functions import col
+    # Local Pandas version of this occupies ~1.2GB RAM
+    df = spark.range(1, 50_000_000)
+    # calculate z = x + 2y + 1000
+    df = df.withColumn("x", col("id") * 2)\
+        .withColumn("y", col("id") + 200)\
+        .withColumn("z", col("x") + 2 * col("y") + 1000)
+    return df
 
 
 def main():
@@ -51,8 +59,9 @@ def main():
     print("connected to ray cluster")
 
     if TEST_TASK == "CPU":
-        per_task_samples = 10_000
-        task_count = 4
+        # Monte Carlo Pi estimation as a dummy load
+        per_task_samples = 5_000_000
+        task_count = 11
         results = [cpu_test_method.remote(per_task_samples) for _ in range(task_count)]
         total_samples = task_count * per_task_samples
         total_inside = sum(ray.get(results))
@@ -65,7 +74,16 @@ def main():
         print(b)
 
     elif TEST_TASK == "DATASETS":
-        ...
+        import raydp
+        spark = raydp.init_spark(
+            app_name="example",
+            num_executors=4,
+            executor_cores=8,
+            executor_memory="16GB"
+        )
+        dataset = load_dataset(spark)
+        print()
+        raydp.stop_spark()
 
 
 if __name__ == '__main__':
