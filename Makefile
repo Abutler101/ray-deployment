@@ -3,6 +3,18 @@ SHELL := bash
 MK_FILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT_PATH := $(realpath $(dir $(MK_FILE_PATH)))
 
+.PHONY: build-priv-gpu-img
+build-priv-gpu-img:
+	DOCKER_BUILDKIT=1 docker build -f $(ROOT_PATH)/custom-image/Dockerfile.gpu -t nexus.dataspartan.com:9443/turintech/ray/ml-gpu-public-deps \
+$(ROOT_PATH)/custom-image --secret id=pip-config,src=$(HOME)/.config/pip/pip.conf --secret id=pip-netrc,src=$(HOME)/.netrc
+
+.PHONY: build-priv-cpu-img
+build-priv-cpu-img:
+	DOCKER_BUILDKIT=1 docker build -f $(ROOT_PATH)/custom-image/Dockerfile.cpu -t nexus.dataspartan.com:9443/turintech/ray/ml-cpu-public-deps \
+$(ROOT_PATH)/custom-image --secret id=pip-config,src=$(HOME)/.config/pip/pip.conf --secret id=pip-netrc,src=$(HOME)/.netrc
+
+.PHONY: build-imgs
+build-imgs: build-priv-gpu-img build-priv-cpu-img
 
 .PHONY: cluster-down
 cluster-down:
@@ -21,7 +33,6 @@ build-k3s-cuda:
 	cd $(ROOT_PATH)/cuda-k3d; ./build.sh
 	docker tag docker.io/rancher/k3s:v1.25.6-k3s1-cuda k3d-registry.ray.localhost:11836/k3s-v1.25.6-k3s1-cuda:latest
 	docker push k3d-registry.ray.localhost:11836/k3s-v1.25.6-k3s1-cuda:latest
-
 
 .PHONY: launch-kubernetes-cuda
 launch-kubernetes-cuda: cluster-down build-k3s-cuda
